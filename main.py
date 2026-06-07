@@ -23,10 +23,10 @@ def print_results(analysis, in_wordlist, pwned_count):
 
 def main():
     print("Welcome to the Password Analyzer")
-    wordlist = load_wordlist("Wordlists/rockyou.txt")
+    wordlist = load_wordlist("Wordlists/rockyou.txt")         #it is a function made in checker.py, it's not built-in, keep it in mind
     print(f"Loaded {len(wordlist)} words from the wordlist")
 
-    while True:
+    while True:                                                 #important loop, combines almost all funtions, logic is important
         password = input("Enter a password to analyze: ")
         if password == "quit":
             break
@@ -42,6 +42,7 @@ def main():
         else:
             is_mutation = is_mutation_of_wordlist(password, wordlist)
             if is_mutation == True:
+                #if password has any weakness or mutation then entropy should be decreased so it's strength decreases
                 analysis["weaknesses"].append("Mutation of known password is Detected")
                 analysis["entropy"] = round(analysis["entropy"] * 0.6, 2)
                 analysis["strength"] = get_strength_label(analysis["entropy"])

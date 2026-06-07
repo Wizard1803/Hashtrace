@@ -130,3 +130,48 @@ Repeating characters Detected
 Mutation of known password is Detected     
 ========================================
 ```
+## Versions
+
+**V1-current** 
+
+```
+Entropy scoring
+Charset size detection
+Strength label
+Rockyou wordlist check
+HaveIBeenPwned API
+Mutation detection
+Repeating character detection
+Basic weakness detection
+```
+
+**V2-Coming Soon** 
+
+```
+Time to crack estimation
+Keyboard walk detection (qwerty, asdfgh)
+Date pattern detection (password2024, john1990)
+Leet speak detection (p4ssw0rd, @dmin)
+Colored CLI output with rich library
+Similar password detection (Levenshtein distance)
+```
+
+**V3-Planned** 
+
+```
+Password improvement suggestions
+Hash identifier + cracker
+Bulk analysis mode (--bulk passwords.txt)
+JSON output mode (--json flag)
+Export results to file
+Password policy checker for Organizations and IT teams
+```
+
+**V4-Future(conversion into UI Based tool also)** 
+
+```
+Flask web UI
+Visual strength meter
+Real time analysis as you type
+Next.js UI upgrade
+```

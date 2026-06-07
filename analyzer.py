@@ -38,13 +38,13 @@ def get_strength_label(entropy):
     else:
         return "Very Strong"
 
-
+#function to check for common strong password practices 
 def get_weaknesses(password):
     issues = []
 
     if len(password) < 8:
         issues.append("Too short — minimum 8 characters")
-    if not re.search(r'[A-Z]', password):
+    if not re.search(r'[A-Z]', password):         #used regular expression here for character checking in password
         issues.append("No uppercase letters")
     if not re.search(r'[0-9]', password):
         issues.append("No numbers")

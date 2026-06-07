@@ -24,6 +24,17 @@ def is_in_wordlist(password, wordlist):
     return password.lower() in wordlist
 
 
+
+
+# Here in this function the user password is converted into hash using sha1
+# then broken into first5 and remaining suffix (it is because we shouldn't
+# check or search for whole hash through api, it may leak or 
+# we can say hibpwn knows someone password and it's 'almost' leaked now)
+
+# then first5 of hashed value is passed through hibpwned api and gets all the hash values 
+# of the matching hashes and stores in response
+# then response is checked and matched with the suffix of user password
+#  this is how the function checks compromised passwords from haveibeenpwned passwords
 def check_hibpwn(password):
     hash = hashlib.sha1(password.encode()).hexdigest().upper()
 
