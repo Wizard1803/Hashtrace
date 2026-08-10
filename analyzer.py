@@ -55,6 +55,46 @@ def get_weaknesses(password):
 
     return issues
 
+def format_seconds_to_readable(seconds):
+    # Core Logic: Convert raw seconds into a readable string (years, days, hours, minutes, seconds).
+    # - Decreasing order unit selection.
+    # - Max 100 years. If > 100 years, show label + scientific notation (e.g., ">100 Years (3.5e+15 seconds)").
+    # - Hours get 1 decimal place; all other units round to nearest whole number.
+    minute = 60
+    hour = minute * 60
+    day = hour * 24
+    month = day * 30
+    year = day * 365
+    if seconds >= 100 * year:
+        return f"> 100 years ({seconds / year:.1e} years)"
+    elif seconds >= year:
+        return f"{seconds / year:.0f} year"
+    elif seconds >= month:
+        return f"{seconds / month:.0f} months"
+    elif seconds >= day:
+        return f"{seconds / day:.0f} days"
+    elif seconds >= hour:
+        return f"{seconds / hour:.1f} hours"
+    elif seconds >= minute:
+        return f"{seconds / minute:.0f} minutes"
+    else:
+        return f"{seconds:.0f} seconds"
+
+def get_crack_times(entropy):
+    # Core Logic: Calculate time-to-crack across 4 threat-model tiers.
+    # Formula: seconds = (2 ** entropy) / rate
+    # Returns a dictionary mapping the tier name to the readable time string.
+    tiers = {
+        "Online Attack (Throttled)": 10,
+        "Offline Attack (Slow Hash)": 10000,
+        "Offline Attack (Fast Hash)": 10000000000,
+        "Massive GPU Cluster": 1000000000000
+    }
+    crack_times = {}
+    for tier, rate in tiers.items():
+        crack_times[tier] = format_seconds_to_readable((2 ** entropy) / rate)
+    return crack_times
+
 def analyze(password):
     entropy = calculate_entropy(password)
     analysis = {

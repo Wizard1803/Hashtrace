@@ -2,3 +2,4 @@ __pycache__/
 *.pyc
 Wordlists/rockyou.txt
 Wordlists/top1000.txt
+.agents/

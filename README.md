@@ -1,177 +1,75 @@
-# Password Analyzer
+# Hashtrace
 
-## Problem Statement
-Users create weak passwords without knowing they're weak. Common tools 
-just say "weak" or "strong" without explaining actual vulnerabilities
- or whether the password has already been compromised in real breaches.  
+**Hashtrace** is an advanced, threat-model-aware Password Analyzer CLI built in Python. 
 
+Unlike basic password strength meters that rely purely on naive length-based entropy math, Hashtrace evaluates passwords against realistic offensive security techniques. It actively penalizes common human patterns, checks against massive known-breach databases, and provides realistic time-to-crack estimates across four different attacker threat models.
 
-**To analyze password strength and it's probability that it can be cracked and give details about the password**
+<p align="left">
+  <img src="https://skillicons.dev/icons?i=python,bash,linux,windows" alt="Tech Stack" />
+</p>
 
+## Features (v2.0)
 
-## Tech Stack:
-```
-Python 3.12.4
-Libraries used -
-    Built in : math, re (regex), hashlib
-    External : requests
-API : Haveibeenpwned(free, no key required)
-```
+* **HaveIBeenPwned (HIBP) Integration:** Securely queries the HIBP API (using k-Anonymity) to check if the exact password has been leaked in public data breaches.
+* **Local Wordlist Checking:** Fast lookups against local dictionaries (e.g., `rockyou.txt`) to instantly flag compromised passwords.
+* **Advanced Pattern Detection:**
+  * **Mutation & Leetspeak:** Detects common substitutions (`p@ssw0rd123`) and hybrid dictionary mutations.
+  * **Keyboard Walks:** Catches horizontal keyboard mashes (e.g., `qwerty`, `asdfgh`).
+  * **Date Patterns:** Detects dictionary words appended with 4-digit years (e.g., `superman1998`).
+  * **Repeating Characters:** Heavily penalizes stuttering patterns (e.g., `!!!!!`).
+* **Offensive Security Entropy Scoring:** Uses aggressive multiplier penalties and a "Hard Cap" system to ensure that long but predictable passwords (like `thisisaverylongpassword`) are never artificially rated as "Strong".
+* **Threat Model Crack Times:** Calculates estimated time-to-crack across four realistic attacker scenarios:
+  1. Online Attack (Throttled) - *100 guesses/sec*
+  2. Offline Attack (Slow Hash, e.g. bcrypt) - *10,000 guesses/sec*
+  3. Offline Attack (Fast Hash, e.g. MD5) - *10 Billion guesses/sec*
+  4. Massive GPU Cluster (Nation-State/Cartel) - *100 Trillion guesses/sec*
+* **Beautiful CLI UI:** Built with `rich` for dynamic coloring, tables, and loading spinners.
 
-## Project Structure:
-```
-Password_Analyzer
-    |--main.py
-    |--checker.py
-    |--analyzer.py
-    |--Wordlists
-        |--password_list.txt
-```
+## Installation
 
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/hashtrace.git
+   cd hashtrace
+   ```
 
-## Workflow:
-```
-load wordlist
-     |
-     \/
-input password from user 
-     |
-     \/
-check conditions for input
-     |
-     \/
-analyze(method call)
-     |
-     \/
-check wordlist(method call) 
-     |
-     \/
-check mutation(method call)
-     |
-     \/
-check repeated characters(from weaknesses list)
-     |
-     \/
-check if password is been pawned(api call)
-     |
-     \/
-prints results(method in main)
-     |
-     \/
-prints whole analysis results
-```
+2. Install the required Python packages:
+   ```bash
+   pip install rich requests
+   ```
 
+3. **Add your Wordlist:**
+   Create a `Wordlists` folder in the root directory and place your dictionary file inside it. By default, the script looks for `rockyou.txt`:
+   ```bash
+   mkdir Wordlists
+   # Place rockyou.txt inside the Wordlists folder
+   ```
 
+## Usage
 
-## Installing and running project:
+Run the main script to launch the CLI interface:
 
-1. Clone the project from repository:  
-    Run this command in terminal:  
-```
-git clone repo_link
-```
-
-2. Create folder Wordlist:  
-    -download and paste the rockyou.txt file from web "https://github.com/brannondorsey/naive-hashcat/releases/download/data/rockyou.txt"  
-    -change file path for File I/O in main.py (in main function wordlist
-    variable is loading a file, Here change the file path)
-
-3. Install requests  
-    Run following command in terminal:  
-```
-pip install requests
-```
-
-4. Run the project in terminal:  
-```
+```bash
 python main.py
 ```
 
-5. Enter the Password to Analyze
+You will be greeted by the Hashtrace banner and prompted to enter passwords for analysis. The tool will provide a detailed Target Analysis Report for each password. Type `quit` to exit.
 
-## Note : **rockyou.txt is .gitignore due to its size, You can download it that is mentioned in installation steps**
+## Project Structure
 
+* `main.py`: The entry point. Handles the CLI loop, UI rendering, and user input via `rich`.
+* `checker.py`: Contains the logic for the HIBP API, local wordlist loading, and structural pattern detection (leetspeak, mutations, keyboard walks, dates).
+* `analyzer.py`: Contains the core mathematical logic for calculating base entropy, mapping strength tiers, and calculating threat-model crack times.
 
-## Example Results :
+## Acknowledgments
 
-1.
-```
-Welcome to the Password Analyzer
-Loaded 13830163 words from the wordlist
-Enter a password to analyze: P@ssw0rd@2024xyz
-========================================
-Password: P@ssw0rd@2024xyz
-Length: 16
-Charset Size: 94
-Entropy: 104.87
-Strength: Strong
-PAWNED : NO
-In Wordlist: NO
-no issues found
-========================================
-```
+* **Troy Hunt & HaveIBeenPwned**: For providing the incredible (and free) API that powers the public breach detection.
+* **Textualize / Rich**: For the fantastic Python library used to build the beautiful and responsive CLI interface.
 
-2.
-```
-Welcome to the Password Analyzer
-Loaded 13830163 words from the wordlist
-Enter a password to analyze: password1111
-========================================
-Password: password1111
-Length: 12
-Charset Size: 36
-Entropy: 26.05
-Strength: Very Weak
-PAWNED : YES - SEEN 12694 times in breaches
-In Wordlist: NO
-No uppercase letters
-No special characters
-Repeating characters Detected
-Mutation of known password is Detected     
-========================================
-```
-## Versions
+## Disclaimer
 
-**V1-current** 
+This tool is designed for educational purposes, defensive security auditing, and threat modeling. Do not enter your *actual* personal passwords into any command-line tool or script. 
 
-```
-Entropy scoring
-Charset size detection
-Strength label
-Rockyou wordlist check
-HaveIBeenPwned API
-Mutation detection
-Repeating character detection
-Basic weakness detection
-```
+## License
 
-**V2-Coming Soon** 
-
-```
-Time to crack estimation
-Keyboard walk detection (qwerty, asdfgh)
-Date pattern detection (password2024, john1990)
-Leet speak detection (p4ssw0rd, @dmin)
-Colored CLI output with rich library
-Similar password detection (Levenshtein distance)
-```
-
-**V3-Planned** 
-
-```
-Password improvement suggestions
-Hash identifier + cracker
-Bulk analysis mode (--bulk passwords.txt)
-JSON output mode (--json flag)
-Export results to file
-Password policy checker for Organizations and IT teams
-```
-
-**V4-Future(conversion into UI Based tool also)** 
-
-```
-Flask web UI
-Visual strength meter
-Real time analysis as you type
-Next.js UI upgrade
-```
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
