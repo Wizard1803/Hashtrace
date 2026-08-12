@@ -8,7 +8,9 @@ Unlike basic password strength meters that rely purely on naive length-based ent
   <img src="https://skillicons.dev/icons?i=python,bash,linux,windows" alt="Tech Stack" />
 </p>
 
-## Features (v2.0)
+## Features
+
+### New in v2.0
 
 * **HaveIBeenPwned (HIBP) Integration:** Securely queries the HIBP API (using k-Anonymity) to check if the exact password has been leaked in public data breaches.
 * **Local Wordlist Checking:** Fast lookups against local dictionaries (e.g., `rockyou.txt`) to instantly flag compromised passwords.
@@ -25,11 +27,18 @@ Unlike basic password strength meters that rely purely on naive length-based ent
   4. Massive GPU Cluster (Nation-State/Cartel) - *100 Trillion guesses/sec*
 * **Beautiful CLI UI:** Built with `rich` for dynamic coloring, tables, and loading spinners.
 
+### Core Analysis (v1.0)
+
+* **Mathematical Entropy Calculation:** Calculates raw bits of entropy based on password length and charset complexity (lowercase, uppercase, numbers, symbols).
+* **Strength Classification:** Grades passwords on a strict scale from "Very Weak" to "Very Strong" based on bit thresholds.
+* **Structural Weakness Checks:** Flags fundamental flaws like missing character types or inadequate length.
+* **Offline-First:** All math and pattern detection runs 100% locally on your machine without sending your password anywhere.
+
 ## Installation
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/hashtrace.git
+   git clone https://github.com/wizard1803/hashtrace.git
    cd hashtrace
    ```
 
@@ -60,6 +69,12 @@ You will be greeted by the Hashtrace banner and prompted to enter passwords for 
 * `main.py`: The entry point. Handles the CLI loop, UI rendering, and user input via `rich`.
 * `checker.py`: Contains the logic for the HIBP API, local wordlist loading, and structural pattern detection (leetspeak, mutations, keyboard walks, dates).
 * `analyzer.py`: Contains the core mathematical logic for calculating base entropy, mapping strength tiers, and calculating threat-model crack times.
+
+## Screenshots
+
+![Hashtrace Analysis - Strong Password](docs/Screenshot.png)
+<br>
+![Hashtrace Analysis - Weak Password](docs/Screenshot1.png)
 
 ## Acknowledgments
 
