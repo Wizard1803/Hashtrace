@@ -1,5 +1,6 @@
 from analyzer import analyze, get_strength_label, get_crack_times, TIER_EXPLANATIONS
 from checker import load_wordlist, is_in_wordlist, is_mutation_of_wordlist,check_hibpwn, is_keyboard_walk, is_date_pattern, is_leetspeak_of_wordlist, is_hybrid_mutation_leetspeak
+from policy import load_policy, check_policy
 from rich.console import Console, Group
 from rich.table import Table
 from rich.panel import Panel
@@ -32,7 +33,7 @@ def get_time_color(t_str):
         return "bold green"
     return "white"
 
-def print_results(analysis, in_wordlist, pwned_count, crack_times):
+def print_results(analysis, in_wordlist, pwned_count, crack_times, policy_result=None):
     # We map strength labels to colors for better visual feedback
     strength_colors = {
         "Very Weak (Known Password)": "bold red",
@@ -61,6 +62,15 @@ def print_results(analysis, in_wordlist, pwned_count, crack_times):
         render_items.append("[cyan]PAWNED:[/] [bold green]NO[/]")
         
     render_items.append(f"[cyan]In Wordlist:[/] {'[bold red]YES - Instantly CRACKABLE[/]' if in_wordlist else '[bold green]NO[/]'}")
+    
+    if policy_result:
+        passed, failed_rules = policy_result
+        if passed:
+            render_items.append("[cyan]Policy Compliance:[/] [bold green]PASSED[/]")
+        else:
+            render_items.append("[cyan]Policy Compliance:[/] [bold red]FAILED[/]")
+            for rule in failed_rules:
+                render_items.append(f"  [bold red]x[/] {rule}")
     
     if len(analysis["weaknesses"]) != 0:
         render_items.append("\n[yellow]Detected Weaknesses:[/]")
@@ -110,6 +120,8 @@ def main():
     console.print(f"[bold red]{BANNER}[/]")
     print_tier_explanations()
     
+    active_policy = load_policy("policy.json")
+    
     # UX Improvement: Status spinner while doing the heavy wordlist loading
     with console.status("[bold cyan]Loading wordlist...[/]"):
         wordlist = load_wordlist("Wordlists/rockyou.txt")         #it is a function made in checker.py, it's not built-in, keep it in mind
@@ -128,6 +140,7 @@ def main():
             analysis = analyze(password)
             in_wordlist = is_in_wordlist(password, wordlist)
             pwned_count = check_hibpwn(password)
+            policy_result = check_policy(password, active_policy)
             crack_times = None
             keyboard_walk = is_keyboard_walk(password)
             if keyboard_walk:
@@ -185,7 +198,7 @@ def main():
                 if pwned_count == 0 and not (is_mutation or is_leet or is_hybrid):
                     crack_times = get_crack_times(analysis["entropy"])
             
-        print_results(analysis, in_wordlist, pwned_count, crack_times)
+        print_results(analysis, in_wordlist, pwned_count, crack_times, policy_result)
         print() # Spacer before next input prompt
 
 if __name__ == "__main__":
