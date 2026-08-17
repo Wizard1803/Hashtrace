@@ -1,6 +1,7 @@
 from analyzer import analyze, get_strength_label, get_crack_times, TIER_EXPLANATIONS
 from checker import load_wordlist, is_in_wordlist, is_mutation_of_wordlist,check_hibpwn, is_keyboard_walk, is_date_pattern, is_leetspeak_of_wordlist, is_hybrid_mutation_leetspeak
 from policy import load_policy, check_policy
+from banner import print_banner
 from rich.console import Console, Group
 from rich.table import Table
 from rich.panel import Panel
@@ -109,15 +110,7 @@ def print_results(analysis, in_wordlist, pwned_count, crack_times, policy_result
 
 
 def main():
-    BANNER = r"""
-    __  __           __    __                     
-   / / / /___ ______/ /_  / /__________ _________ 
-  / /_/ / __ `/ ___/ __ \/ __/ ___/ __ `/ ___/ _ \
- / __  / /_/ (__  ) / / / /_/ /  / /_/ / /__/  __/
-/_/ /_/\__,_/____/_/ /_/\__/_/   \__,_/\___/\___/ 
-                                             v3.0 
-"""
-    console.print(f"[bold red]{BANNER}[/]")
+    print_banner(console)
     print_tier_explanations()
     
     active_policy = load_policy("policy.json")
