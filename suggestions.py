@@ -9,7 +9,6 @@ SEPARATORS = list("0123456789!@#$%^&*-_+=")
 
 def load_eff_wordlist(filepath="Wordlists/eff_large_wordlist.txt"):
     """
-    Scaffold (Agent):
     Loads words from the EFF wordlist file into a Python list.
     """
     if not os.path.exists(filepath):
@@ -83,7 +82,6 @@ def generate_suggestions(wordlist, word_count=4):
 
 def format_suggestions_panel(suggestions):
     """
-    Scaffold (Agent):
     Renders the generated passphrase suggestions inside a rich Panel.
     """
     if not suggestions:
@@ -103,7 +101,7 @@ def format_suggestions_panel(suggestions):
         render_items.append(f"  [dim]Entropy: {entropy} bits | Rating: [green]{strength}[/green][/]")
         if exp:
             render_items.append(f"  [italic dim white]{exp}[/]")
-        render_items.append("") # spacer
+        render_items.append("")
 
     if render_items:
         render_items.pop()

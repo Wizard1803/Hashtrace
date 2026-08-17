@@ -56,7 +56,7 @@ def get_weaknesses(password):
     return issues
 
 def format_seconds_to_readable(seconds):
-    # Core Logic: Convert raw seconds into a readable string (years, days, hours, minutes, seconds).
+    # Convert raw seconds into a readable string (years, days, hours, minutes, seconds).
     # - Decreasing order unit selection.
     # - Max 100 years. If > 100 years, show label + scientific notation (e.g., ">100 Years (3.5e+15 seconds)").
     # - Hours get 1 decimal place; all other units round to nearest whole number.
@@ -81,7 +81,7 @@ def format_seconds_to_readable(seconds):
         return f"{seconds:.0f} seconds"
 
 def get_crack_times(entropy):
-    # Core Logic: Calculate time-to-crack across 4 threat-model tiers.
+    # Calculate time-to-crack across 4 threat-model tiers.
     # Formula: seconds = (2 ** entropy) / rate
     # Returns a dictionary mapping the tier name to the readable time string.
     tiers = {
@@ -113,10 +113,3 @@ TIER_EXPLANATIONS = {
     "Offline Attack (Fast Hash)" :"When the attacker has a database dump and is using a fast hashing algorithm like MD5 or SHA-1 (10 Billion guesses per second).",
     "Massive GPU Cluster" :  "When the attacker has unlimited resources (e.g., a nation-state or cartel) using thousands of high-end GPUs (100 Trillion guesses per second)."
 }
-
-#Functions
-#get_charset_size()
-#calculate_entropy()
-#get_strength_label()
-#get_weaknesses()
-#analyze()

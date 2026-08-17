@@ -34,17 +34,13 @@ for row in KEYBOARD_ROWS:
         WALK_CHUNKS.add(chunk[::-1])    
 
 def is_keyboard_walk(password):
-    # Core Logic: Write your check here!
-    # You now have a master set called WALK_CHUNKS that contains every possible 4-char walk.
-    # Loop through WALK_CHUNKS and check if any chunk exists as a substring in password.lower()
-    # Return True if found, False otherwise.
     for chunks in WALK_CHUNKS:
         if chunks in password.lower():
             return True
     return False
 
 def is_date_pattern(password):
-    # Core Logic: Detect 4-digit years in the password (e.g., 1900 to 2030).
+    # Detect 4-digit years in the password (e.g., 1900 to 2030).
     return bool(re.search(r'(19[0-9]{2}|20[0-2][0-9]|2030)', password))
 
 LEET_MAPPING = {
@@ -62,7 +58,7 @@ LEET_MAPPING = {
 }
 
 def is_leetspeak_of_wordlist(password, wordlist):
-    # Core Logic: Normalize leetspeak and check against wordlist
+    # Normalize leetspeak and check against wordlist
     normalized = password.lower()
     for leet_char, normal_char in LEET_MAPPING.items():
         normalized = normalized.replace(leet_char, normal_char)
@@ -117,9 +113,3 @@ def check_hibpwn(password):
         if returned_suffix == suffix:
             return int(count)
     return 0
-
-#Functions:
-#load_wordlist()
-#is_mutation_of_wordlist()
-#is_in_wordlist()
-#check_hibpwn()

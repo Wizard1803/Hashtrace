@@ -5,6 +5,7 @@ from checker import load_wordlist, is_in_wordlist, is_mutation_of_wordlist,check
 from policy import load_policy, check_policy
 from bulk import run_bulk_audit
 from suggestions import load_eff_wordlist, generate_suggestions, format_suggestions_panel
+from cracker import run_hash_cracker
 from banner import print_banner
 from rich.console import Console, Group
 from rich.table import Table
@@ -39,7 +40,6 @@ def get_time_color(t_str):
     return "white"
 
 def print_results(analysis, in_wordlist, pwned_count, crack_times, policy_result=None, suggestions=None):
-    # We map strength labels to colors for better visual feedback
     strength_colors = {
         "Very Weak (Known Password)": "bold red",
         "Very Weak": "bold red",
@@ -50,7 +50,6 @@ def print_results(analysis, in_wordlist, pwned_count, crack_times, policy_result
     }
     color = strength_colors.get(analysis['strength'], "white")
     
-    # Build a list of renderables to pass into the Panel's Group
     render_items = []
     
     render_items.append(f"[cyan]Password:[/] {analysis['password']}")
@@ -59,7 +58,7 @@ def print_results(analysis, in_wordlist, pwned_count, crack_times, policy_result
     render_items.append(f"[dim]Charset Size: {analysis['charset_size']}[/]")
     render_items.append(f"[dim]Entropy: {analysis['entropy']} bits[/]")
     render_items.append(f"[cyan]Strength:[/] [{color}]{analysis['strength']}[/{color}]")
-    render_items.append("") # spacer
+    render_items.append("")
     
     if pwned_count > 0:
         render_items.append(f"[cyan]PAWNED:[/] [bold red]YES - SEEN {pwned_count} times in breaches[/]")
@@ -84,12 +83,12 @@ def print_results(analysis, in_wordlist, pwned_count, crack_times, policy_result
     else:
         render_items.append("\n[green]No structural weaknesses found.[/]")
     
-    render_items.append("") # spacer
+    render_items.append("")
     
     if crack_times: 
         table = Table(title="Estimated Time to Crack", show_header=True, header_style="bold magenta")
         table.add_column("Threat Model", style="cyan", no_wrap=True)
-        table.add_column("Time") # We will color rows dynamically
+        table.add_column("Time")
         
         for tier, time_str in crack_times.items():
             t_color = get_time_color(time_str)
@@ -97,10 +96,8 @@ def print_results(analysis, in_wordlist, pwned_count, crack_times, policy_result
         
         render_items.append(table)
     else:
-        # Using the exact phrasing requested in PROJECT_FRAMEWORK.md
         render_items.append("[bold red]Already compromised — time-to-crack is irrelevant.[/]")
     
-    # Wrap everything in a nice bordered panel
     results_panel = Panel(
         Group(*render_items),
         title="[bold blue]Target Analysis Report[/]",
@@ -122,16 +119,22 @@ def print_results(analysis, in_wordlist, pwned_count, crack_times, policy_result
 def main():
     parser = argparse.ArgumentParser(description="HashTrace - Offensive Security Password Intelligence Tool")
     parser.add_argument("--bulk", nargs=2, metavar=("INPUT_TXT", "OUTPUT_CSV"), help="Audit multiple passwords from a .txt file and write results to .csv")
+    parser.add_argument("--crack", metavar="HASH", help="Attempt in-memory dictionary recovery on a target hash (MD5, NTLM, SHA-1, SHA-256, SHA-512)")
     args = parser.parse_args()
 
     active_policy = load_policy("policy.json")
 
-    # If --bulk flag is provided, run bulk audit mode directly
     if args.bulk:
         input_file, output_file = args.bulk
         with console.status("[bold cyan]Loading wordlist...[/]"):
             wordlist = load_wordlist("Wordlists/rockyou.txt")
         run_bulk_audit(input_file, output_file, wordlist, active_policy, console=console)
+        return
+
+    if args.crack:
+        with console.status("[bold cyan]Loading wordlist for cracking...[/]"):
+            wordlist = load_wordlist("Wordlists/rockyou.txt")
+        run_hash_cracker(args.crack, wordlist, console=console)
         return
 
     print_banner(console)
@@ -227,11 +230,7 @@ def main():
             suggestions = generate_suggestions(eff_wordlist) if needs_improvement else None
             
         print_results(analysis, in_wordlist, pwned_count, crack_times, policy_result, suggestions)
-        print() # Spacer before next input prompt
+        print()
 
 if __name__ == "__main__":
     main()
-
-#Functions
-#print_results()
-#main()

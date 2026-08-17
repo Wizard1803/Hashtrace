@@ -6,7 +6,6 @@ from policy import check_policy
 
 def detect_format(first_line):
     """
-    Core Logic (Wizard):
     Auto-detect whether the file format is:
     - 'user_pass': username,password format (contains at least one comma)
     - 'bare': bare password format (no comma)
@@ -21,7 +20,6 @@ def detect_format(first_line):
 
 def parse_line(line, expected_format, line_number):
     """
-    Core Logic (Wizard):
     Parses a single line based on the expected_format.
     
     Returns: (identifier, password)
@@ -47,7 +45,6 @@ def parse_line(line, expected_format, line_number):
 
 def run_bulk_audit(input_path, output_path, wordlist, policy, console=None):
     """
-    Scaffold (Agent):
     Reads input .txt, processes passwords through HashTrace analysis,
     and writes results to output .csv without exposing raw passwords.
     """
