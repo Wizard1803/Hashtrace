@@ -1,4 +1,4 @@
-from analyzer import analyze, get_strength_label, get_crack_times
+from analyzer import analyze, get_strength_label, get_crack_times, TIER_EXPLANATIONS
 from checker import load_wordlist, is_in_wordlist, is_mutation_of_wordlist,check_hibpwn, is_keyboard_walk, is_date_pattern, is_leetspeak_of_wordlist, is_hybrid_mutation_leetspeak
 from rich.console import Console, Group
 from rich.table import Table
@@ -6,6 +6,22 @@ from rich.panel import Panel
 from rich.prompt import Prompt
 
 console = Console()
+
+def print_tier_explanations():
+    render_items = []
+    for tier, desc in TIER_EXPLANATIONS.items():
+        render_items.append(f"[bold cyan]• {tier}:[/]\n  [white]{desc}[/]\n")
+    if render_items:
+        render_items.pop()  # remove trailing newline on last item
+
+    panel = Panel(
+        Group(*render_items),
+        title="[bold magenta]Threat-Model Tier Descriptions[/]",
+        border_style="magenta",
+        expand=False
+    )
+    console.print(panel)
+    console.print()
 
 def get_time_color(t_str):
     if "second" in t_str or "minute" in t_str or "hour" in t_str:
@@ -89,9 +105,10 @@ def main():
   / /_/ / __ `/ ___/ __ \/ __/ ___/ __ `/ ___/ _ \
  / __  / /_/ (__  ) / / / /_/ /  / /_/ / /__/  __/
 /_/ /_/\__,_/____/_/ /_/\__/_/   \__,_/\___/\___/ 
-                                             v2.0 
+                                             v3.0 
 """
     console.print(f"[bold red]{BANNER}[/]")
+    print_tier_explanations()
     
     # UX Improvement: Status spinner while doing the heavy wordlist loading
     with console.status("[bold cyan]Loading wordlist...[/]"):

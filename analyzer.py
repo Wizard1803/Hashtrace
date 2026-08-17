@@ -107,6 +107,13 @@ def analyze(password):
     }
     return analysis
 
+TIER_EXPLANATIONS = {
+    "Online Attack (Throttled)": "When the password is sprayed against a live login form. The system allows 10 guesses per second.",
+    "Offline Attack (Slow Hash)":  "When the attacker has a database dump and is using a slow hashing algorithm like bcrypt (10,000 guesses per second).",
+    "Offline Attack (Fast Hash)" :"When the attacker has a database dump and is using a fast hashing algorithm like MD5 or SHA-1 (10 Billion guesses per second).",
+    "Massive GPU Cluster" :  "When the attacker has unlimited resources (e.g., a nation-state or cartel) using thousands of high-end GPUs (100 Trillion guesses per second)."
+}
+
 #Functions
 #get_charset_size()
 #calculate_entropy()
