@@ -1,6 +1,10 @@
+import sys
+import argparse
 from analyzer import analyze, get_strength_label, get_crack_times, TIER_EXPLANATIONS
 from checker import load_wordlist, is_in_wordlist, is_mutation_of_wordlist,check_hibpwn, is_keyboard_walk, is_date_pattern, is_leetspeak_of_wordlist, is_hybrid_mutation_leetspeak
 from policy import load_policy, check_policy
+from bulk import run_bulk_audit
+from suggestions import load_eff_wordlist, generate_suggestions, format_suggestions_panel
 from banner import print_banner
 from rich.console import Console, Group
 from rich.table import Table
@@ -11,10 +15,10 @@ console = Console()
 
 def print_tier_explanations():
     render_items = []
-    for tier, desc in TIER_EXPLANATIONS.items():
-        render_items.append(f"[bold cyan]• {tier}:[/]\n  [white]{desc}[/]\n")
-    if render_items:
-        render_items.pop()  # remove trailing newline on last item
+    tier_list = list(TIER_EXPLANATIONS.items())
+    for i, (tier, desc) in enumerate(tier_list):
+        suffix = "\n" if i < len(tier_list) - 1 else ""
+        render_items.append(f"[bold cyan]• {tier}:[/]\n  [white]{desc}[/]{suffix}")
 
     panel = Panel(
         Group(*render_items),
@@ -34,7 +38,7 @@ def get_time_color(t_str):
         return "bold green"
     return "white"
 
-def print_results(analysis, in_wordlist, pwned_count, crack_times, policy_result=None):
+def print_results(analysis, in_wordlist, pwned_count, crack_times, policy_result=None, suggestions=None):
     # We map strength labels to colors for better visual feedback
     strength_colors = {
         "Very Weak (Known Password)": "bold red",
@@ -106,15 +110,35 @@ def print_results(analysis, in_wordlist, pwned_count, crack_times, policy_result
     
     console.print()
     console.print(results_panel)
+
+    if suggestions:
+        sug_panel = format_suggestions_panel(suggestions)
+        if sug_panel:
+            console.print()
+            console.print(sug_panel)
     console.print()
 
 
 def main():
+    parser = argparse.ArgumentParser(description="HashTrace - Offensive Security Password Intelligence Tool")
+    parser.add_argument("--bulk", nargs=2, metavar=("INPUT_TXT", "OUTPUT_CSV"), help="Audit multiple passwords from a .txt file and write results to .csv")
+    args = parser.parse_args()
+
+    active_policy = load_policy("policy.json")
+
+    # If --bulk flag is provided, run bulk audit mode directly
+    if args.bulk:
+        input_file, output_file = args.bulk
+        with console.status("[bold cyan]Loading wordlist...[/]"):
+            wordlist = load_wordlist("Wordlists/rockyou.txt")
+        run_bulk_audit(input_file, output_file, wordlist, active_policy, console=console)
+        return
+
     print_banner(console)
     print_tier_explanations()
     
-    active_policy = load_policy("policy.json")
-    
+    eff_wordlist = load_eff_wordlist("Wordlists/eff_large_wordlist.txt")
+
     # UX Improvement: Status spinner while doing the heavy wordlist loading
     with console.status("[bold cyan]Loading wordlist...[/]"):
         wordlist = load_wordlist("Wordlists/rockyou.txt")         #it is a function made in checker.py, it's not built-in, keep it in mind
@@ -191,7 +215,18 @@ def main():
                 if pwned_count == 0 and not (is_mutation or is_leet or is_hybrid):
                     crack_times = get_crack_times(analysis["entropy"])
             
-        print_results(analysis, in_wordlist, pwned_count, crack_times, policy_result)
+            # Only provide passphrase recommendations if the password has weaknesses,
+            # is compromised/breached, or failed the security policy check.
+            needs_improvement = (
+                analysis["strength"] in ["Very Weak", "Very Weak (Known Password)", "Weak", "Medium"]
+                or in_wordlist
+                or pwned_count > 0
+                or len(analysis["weaknesses"]) > 0
+                or (policy_result and not policy_result[0])
+            )
+            suggestions = generate_suggestions(eff_wordlist) if needs_improvement else None
+            
+        print_results(analysis, in_wordlist, pwned_count, crack_times, policy_result, suggestions)
         print() # Spacer before next input prompt
 
 if __name__ == "__main__":
