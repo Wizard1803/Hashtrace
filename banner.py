@@ -26,6 +26,11 @@ if sys.stderr and hasattr(sys.stderr, "reconfigure"):
     except Exception:
         pass
 
+import os
+import platform
+if platform.system() == "Windows":
+    os.system("")  # Enable ANSI escape code parsing in Windows conhost
+
 from rich.console import Console
 from rich.text import Text
 

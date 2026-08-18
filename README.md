@@ -1,90 +1,163 @@
-# Hashtrace
+# HashTrace
 
-**Hashtrace** is an advanced, threat-model-aware Password Analyzer CLI built in Python. 
-
-Unlike basic password strength meters that rely purely on naive length-based entropy math, Hashtrace evaluates passwords against realistic offensive security techniques. It actively penalizes common human patterns, checks against massive known-breach databases, and provides realistic time-to-crack estimates across four different attacker threat models.
+Password intelligence tool. Analyzes passwords like an attacker would, audits credential dumps, and cracks hashes — all from the terminal.
 
 <p align="left">
-  <img src="https://skillicons.dev/icons?i=python,bash,linux,windows" alt="Tech Stack" />
+  <img src="https://skillicons.dev/icons?i=python,linux,windows" alt="Tech Stack" />
 </p>
-
-## Features
-
-### New in v2.0
-
-* **HaveIBeenPwned (HIBP) Integration:** Securely queries the HIBP API (using k-Anonymity) to check if the exact password has been leaked in public data breaches.
-* **Local Wordlist Checking:** Fast lookups against local dictionaries (e.g., `rockyou.txt`) to instantly flag compromised passwords.
-* **Advanced Pattern Detection:**
-  * **Mutation & Leetspeak:** Detects common substitutions (`p@ssw0rd123`) and hybrid dictionary mutations.
-  * **Keyboard Walks:** Catches horizontal keyboard mashes (e.g., `qwerty`, `asdfgh`).
-  * **Date Patterns:** Detects dictionary words appended with 4-digit years (e.g., `superman1998`).
-  * **Repeating Characters:** Heavily penalizes stuttering patterns (e.g., `!!!!!`).
-* **Offensive Security Entropy Scoring:** Uses aggressive multiplier penalties and a "Hard Cap" system to ensure that long but predictable passwords (like `thisisaverylongpassword`) are never artificially rated as "Strong".
-* **Threat Model Crack Times:** Calculates estimated time-to-crack across four realistic attacker scenarios:
-  1. Online Attack (Throttled) - *100 guesses/sec*
-  2. Offline Attack (Slow Hash, e.g. bcrypt) - *10,000 guesses/sec*
-  3. Offline Attack (Fast Hash, e.g. MD5) - *10 Billion guesses/sec*
-  4. Massive GPU Cluster (Nation-State/Cartel) - *100 Trillion guesses/sec*
-* **Beautiful CLI UI:** Built with `rich` for dynamic coloring, tables, and loading spinners.
-
-### Core Analysis (v1.0)
-
-* **Mathematical Entropy Calculation:** Calculates raw bits of entropy based on password length and charset complexity (lowercase, uppercase, numbers, symbols).
-* **Strength Classification:** Grades passwords on a strict scale from "Very Weak" to "Very Strong" based on bit thresholds.
-* **Structural Weakness Checks:** Flags fundamental flaws like missing character types or inadequate length.
-* **Offline-First:** All math and pattern detection runs 100% locally on your machine without sending your password anywhere.
-
-## Installation
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/wizard1803/hashtrace.git
-   cd hashtrace
-   ```
-
-2. Install the required Python packages:
-   ```bash
-   pip install rich requests
-   ```
-
-3. **Add your Wordlist:**
-   Create a `Wordlists` folder in the root directory and place your dictionary file inside it. By default, the script looks for `rockyou.txt`:
-   ```bash
-   mkdir Wordlists
-   # Place rockyou.txt inside the Wordlists folder
-   ```
-
-## Usage
-
-Run the main script to launch the CLI interface:
-
-```bash
-python main.py
-```
-
-You will be greeted by the Hashtrace banner and prompted to enter passwords for analysis. The tool will provide a detailed Target Analysis Report for each password. Type `quit` to exit.
-
-## Project Structure
-
-* `main.py`: The entry point. Handles the CLI loop, UI rendering, and user input via `rich`.
-* `checker.py`: Contains the logic for the HIBP API, local wordlist loading, and structural pattern detection (leetspeak, mutations, keyboard walks, dates).
-* `analyzer.py`: Contains the core mathematical logic for calculating base entropy, mapping strength tiers, and calculating threat-model crack times.
-
-## Screenshots
-
-![Hashtrace Analysis - Strong Password](docs/Screenshot.png)
-<br>
-![Hashtrace Analysis - Weak Password](docs/Screenshot1.png)
-
-## Acknowledgments
-
-* **Troy Hunt & HaveIBeenPwned**: For providing the incredible (and free) API that powers the public breach detection.
-* **Textualize / Rich**: For the fantastic Python library used to build the beautiful and responsive CLI interface.
 
 ## Disclaimer
 
-This tool is designed for educational purposes, defensive security auditing, and threat modeling. Do not enter your *actual* personal passwords into any command-line tool or script. 
+This tool is for defensive security auditing, education, and authorized testing only. The hash cracking and bulk audit features can process real credential data — only use them on data you own or have explicit written permission to test. If you're using stolen hashes or unauthorized password dumps, that's on you, not this tool. All analysis runs locally — the only external call is to HaveIBeenPwned, and even then, only the first 5 characters of a hash are sent(using k-anonymity), never the actual password.
+
+## What is this and why
+
+Most password strength meters lie to you. They'll tell you `thisisaverylongpassword` is *"Strong"* because it's 22 characters — ignoring that it's all lowercase and crackable in seconds with a basic dictionary attack. I built HashTrace to evaluate passwords the way an actual attacker would: checking breach databases, catching leet-speak tricks like `p@ssw0rd`, detecting keyboard walks like `qwertyuiop`, and showing you how long your password actually survives against four different attacker setups — from a rate-limited login form to a nation-state GPU cluster.
+
+I tried showing one flat crack-time estimate at first. Then I realized it's dishonest — 170 bits of entropy against bcrypt is centuries, against raw MD5 it's seconds. Same password. So HashTrace shows all four tiers, because the truth depends on how the password is stored, not just what it is.
+
+The four tiers:
+- **Online (Throttled)** — 10 guesses/sec, like a login form with rate limiting
+- **Offline (Slow Hash)** — 10,000 guesses/sec, like bcrypt or Argon2
+- **Offline (Fast Hash)** — 10 billion guesses/sec, like raw MD5 or SHA-1
+- **GPU Cluster** — 100 trillion guesses/sec, nation-state or dedicated cracking rigs
+
+## What it actually does
+
+HashTrace runs in three modes.
+
+**Interactive mode** — you type a password, it tears it apart. It checks rockyou.txt (13.8M leaked passwords), queries HaveIBeenPwned via k-Anonymity (**your password never leaves your machine**), and runs pattern detection for mutations, leet-speak, keyboard walks, and date suffixes.
+
+Then it calculates entropy with penalties that actually punish predictable structure. If the password is already compromised, it says so — no fake crack-time estimate on top of that. If it's clean, you get time-to-crack across all four threat tiers.
+
+If the password is weak, it suggests two strong passphrases built from random dictionary words — easy to remember, hard to crack. It also checks against your organization's password policy if you've set one up.
+
+**Bulk mode** — feed it a password dump (bare passwords or `username,password` format, auto-detected), get a CSV audit report back. **Raw passwords never touch the output file** — the report references accounts by identifier only, because writing live credentials into a second file on disk defeats the point of an audit.
+
+**Crack mode** — give it a hash, it identifies the algorithm by length (MD5, NTLM, SHA-1, SHA-256, SHA-512), asks you to resolve the MD5/NTLM ambiguity if it can't tell, and runs an in-memory dictionary attack against rockyou.txt. If it doesn't crack it, it tells you straight — *a wordlist miss doesn't mean the password is safe*, it just means it wasn't in this particular list.
+
+## How it works
+
+```
+Password Input
+      |
+      +-- checker.py -- rockyou.txt lookup
+      |                  +-- mutation detection (strip prefix/suffix, re-check)
+      |                  +-- leet-speak normalization (p@ssw0rd -> password -> re-check)
+      |                  +-- keyboard walk detection (precomputed 4-char horizontal sequences)
+      |                  +-- date pattern detection (4-digit year, 1940-2030)
+      |
+      +-- checker.py -- HIBP k-Anonymity query
+      |                  (SHA-1 hash, send first 5 chars only, compare locally)
+      |
+      +-- analyzer.py -- entropy calculation
+      |                   +-- base: log2(charset_size) * length
+      |                   +-- penalties: multiplicative stacking (mutations, leet, walks, dates)
+      |                   +-- hard cap: 45 bits max for lowercase-only strings
+      |                   +-- strength label: Very Weak -> Very Strong
+      |
+      +-- analyzer.py -- time-to-crack (4 tiers)
+      |                   seconds = 2^entropy / guesses_per_sec
+      |                   (skipped entirely if password is already breached)
+      |
+      +-- policy.py -- organizational rule check (from policy.json)
+      |
+      +-- suggestions.py -- Diceware passphrase generator
+                             (4 words from EFF wordlist, random separators)
+                             (only shown when the password actually needs fixing)
+```
+
+The design is straightforward: `analyzer.py` does math, `checker.py` does lookups and transformations, everything else is a module that plugs in without touching the core. Hash cracking (`cracker.py`) is entirely separate — different input type, different flow, only triggered via `--crack`.
+
+## Setup
+
+```bash
+git clone https://github.com/wizard1803/hashtrace.git
+cd hashtrace
+pip install rich requests
+```
+
+You need two wordlists in a `Wordlists/` folder:
+
+- **`rockyou.txt`** — the tool checks passwords against this and uses it for hash cracking. It's 130MB+ so it's gitignored. Grab it from [SecLists](https://github.com/danielmiessler/SecLists) or search "rockyou.txt download" — it's one of the most widely available security wordlists.
+- **`eff_large_wordlist.txt`** — shipped with the repo. Used only for generating passphrase suggestions. This is the EFF's curated Diceware list, not leaked data.
+
+Tested on Python 3.10+ on Windows. Should work on Linux and macOS.
+
+## Usage
+
+**Interactive:**
+```bash
+python main.py
+```
+Type passwords, get a full report — entropy, breach status, pattern detection, crack times, policy compliance, and passphrase suggestions if the password is weak.
+
+**Bulk audit:**
+```bash
+python main.py --bulk passwords.txt report.csv
+```
+Processes a full password dump and outputs a CSV report (without saving raw passwords to the CSV).
+
+The tool auto-detects two input formats for `passwords.txt`:
+1. **Bare passwords:** (One password per line)
+   ```text
+   password123
+   admin
+   hunter2
+   ```
+2. **Username/Password pairs:** (Separated by a comma)
+   ```text
+   jsmith,P@ssw0rd2024
+   admin,admin
+   ```
+
+**Hash cracking:**
+```bash
+python main.py --crack 5d41402abc4b2a76b9719d911017c592
+```
+Identifies the hash type, runs an in-memory dictionary attack against rockyou.txt. Supports MD5, NTLM, SHA-1, SHA-256, SHA-512. Asks you to pick between MD5 and NTLM when it can't tell (both are 32 hex chars), or tries both if you don't know.
+
+## Policy configuration
+
+Drop a `policy.json` in the project root to enforce organizational rules:
+
+```json
+{
+    "min_length": 12,
+    "require_uppercase": true,
+    "require_lowercase": true,
+    "require_numbers": true,
+    "require_symbols": true
+}
+```
+
+Missing or malformed fields fall back to defaults instead of breaking the tool.
+
+## Screenshots
+
+![Hashtrace Opening Screen](docs/OpeningScreen.png)
+
+![Interactive Mode Analysis](docs/interactive_mode_report.png)
+
+![Crack Mode Dictionary Attack](docs/crack_mode.png)
+
+![Bulk Audit Input File Example](docs/bulk_test.png)
+
+![Bulk Audit Report](docs/bulk_report.png)
+
+## What this doesn't do
+
+- No live network attacks. No credential stuffing. No brute-force against login endpoints.
+- Hash cracking is dictionary-only, in-memory, single-threaded. A wordlist miss doesn't mean the password is strong — it means it wasn't in rockyou.
+- No rainbow tables, no rule-based mutations during cracking, no GPU acceleration.
+- No Levenshtein/similarity matching yet — I need to get better at dynamic programming first. *That's on me, not the tool.*
+- HIBP API calls have no retry/timeout handling. If the API is down, that check just fails silently.
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details. 
+
+**TL;DR:** You can use, modify, and distribute this code freely for both commercial and personal use. Just don't hold me liable for what you do with it.
+
+### Acknowledgements
+* The [EFF Large Wordlist](https://www.eff.org/dice) included in this repository is created by the Electronic Frontier Foundation and licensed under [CC BY 3.0 US](https://creativecommons.org/licenses/by/3.0/us/).
