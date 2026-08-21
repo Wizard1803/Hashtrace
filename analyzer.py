@@ -11,7 +11,7 @@ def get_charset_size(password):
         counter += 26
     if re.search(r'[0-9]', password):
         counter += 10
-    if re.search(r'[-!@#$%^&*()_+={}[\]\\;:,.<>?]', password):
+    if re.search(r'[^a-zA-Z0-9]', password):
         counter += 32
 
     return counter
@@ -38,17 +38,17 @@ def get_strength_label(entropy):
     else:
         return "Very Strong"
 
-#function to check for common strong password practices 
+# check for missing character classes and repeating chars
 def get_weaknesses(password):
     issues = []
 
     if len(password) < 8:
         issues.append("Too short — minimum 8 characters")
-    if not re.search(r'[A-Z]', password):         #used regular expression here for character checking in password
+    if not re.search(r'[A-Z]', password):
         issues.append("No uppercase letters")
     if not re.search(r'[0-9]', password):
         issues.append("No numbers")
-    if not re.search(r'[-!@#$%^&*()_+={}[\]\\;:,.<>?]', password):
+    if not re.search(r'[^a-zA-Z0-9]', password):
         issues.append("No special characters")
     if re.search(r'(.)\1{2,}', password):
         issues.append("Repeating characters Detected")
@@ -56,10 +56,7 @@ def get_weaknesses(password):
     return issues
 
 def format_seconds_to_readable(seconds):
-    # Convert raw seconds into a readable string (years, days, hours, minutes, seconds).
-    # - Decreasing order unit selection.
-    # - Max 100 years. If > 100 years, show label + scientific notation (e.g., ">100 Years (3.5e+15 seconds)").
-    # - Hours get 1 decimal place; all other units round to nearest whole number.
+    # format time down to the largest meaningful unit (cap at 100 years for display)
     minute = 60
     hour = minute * 60
     day = hour * 24
@@ -81,9 +78,7 @@ def format_seconds_to_readable(seconds):
         return f"{seconds:.0f} seconds"
 
 def get_crack_times(entropy):
-    # Calculate time-to-crack across 4 threat-model tiers.
-    # Formula: seconds = (2 ** entropy) / rate
-    # Returns a dictionary mapping the tier name to the readable time string.
+    # calculate crack time against 4 threat tiers (seconds = 2^entropy / rate)
     tiers = {
         "Online Attack (Throttled)": 10,
         "Offline Attack (Slow Hash)": 10000,

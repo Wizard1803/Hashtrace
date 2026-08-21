@@ -1,5 +1,6 @@
 import json
 import re
+import os
 
 DEFAULT_POLICY = {
     "min_length": 12,
@@ -10,14 +11,7 @@ DEFAULT_POLICY = {
 }
 
 def validate_policy_config(raw_config):
-    """
-    Validate each field in raw_config:
-    - If a field is missing, invalid type, or out of reasonable bounds,
-      fall back to that specific field's default from DEFAULT_POLICY.
-    - Do NOT reject the entire config if only one field is invalid.
-    
-    Returns a clean, validated policy dictionary.
-    """
+    # validate each field individually and fallback to defaults for invalid fields
     if not isinstance(raw_config, dict):
         print("[!] Policy config must be a JSON object/dict. Using default policy.")
         return DEFAULT_POLICY.copy()
@@ -43,12 +37,11 @@ def validate_policy_config(raw_config):
     return validated
 
 
-def load_policy(filepath="policy.json"):
-    """
-    Reads and parses the policy JSON file.
-    If the file is missing or contains malformed JSON, prints a warning
-    and falls back to DEFAULT_POLICY.
-    """
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_POLICY_PATH = os.path.join(BASE_DIR, "policy.json")
+
+def load_policy(filepath=DEFAULT_POLICY_PATH):
+
     try:
         with open(filepath, "r", encoding="utf-8") as f:
             raw_config = json.load(f)
@@ -62,14 +55,7 @@ def load_policy(filepath="policy.json"):
 
 
 def check_policy(password, policy):
-    """
-    Checks the given password against each rule enabled in the policy.
-    
-    Returns:
-        tuple (passed: bool, failed_rules: list of str)
-        - passed: True if all active policy checks pass, False otherwise.
-        - failed_rules: list of human-readable strings explaining which rules failed.
-    """
+
     failed_rules = []
 
     # 1. Check minimum length

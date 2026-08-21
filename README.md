@@ -71,15 +71,29 @@ The design is straightforward: `analyzer.py` does math, `checker.py` does lookup
 
 ## Setup
 
+For a quick setup that automatically installs the requirements and downloads the 130MB `rockyou.txt` wordlist:
+
+**Windows:**
+```cmd
+setup.bat
+```
+
+**Linux / macOS:**
+```bash
+chmod +x setup.sh
+./setup.sh
+```
+
+**Manual Setup:**
 ```bash
 git clone https://github.com/wizard1803/hashtrace.git
 cd hashtrace
-pip install rich requests
+pip install -r requirements.txt
 ```
 
 You need two wordlists in a `Wordlists/` folder:
 
-- **`rockyou.txt`** — the tool checks passwords against this and uses it for hash cracking. It's 130MB+ so it's gitignored. Grab it from [SecLists](https://github.com/danielmiessler/SecLists) or search "rockyou.txt download" — it's one of the most widely available security wordlists.
+- **`rockyou.txt`** — the tool checks passwords against this and uses it for hash cracking. (The setup scripts will download this for you).
 - **`eff_large_wordlist.txt`** — shipped with the repo. Used only for generating passphrase suggestions. This is the EFF's curated Diceware list, not leaked data.
 
 Tested on Python 3.10+ on Windows. Should work on Linux and macOS.
@@ -94,9 +108,13 @@ Type passwords, get a full report — entropy, breach status, pattern detection,
 
 **Bulk audit:**
 ```bash
-python main.py --bulk passwords.txt report.csv
+python main.py --bulk passwords.txt report.csv --skip-hibp
 ```
 Processes a full password dump and outputs a CSV report (without saving raw passwords to the CSV).
+
+> **Note on `--skip-hibp`**: The HaveIBeenPwned public API enforces a strict rate limit of ~1 request per 1.5 seconds. To avoid getting your IP temporarily banned (HTTP 429 errors), HashTrace intentionally injects a 1.6-second delay between every password checked in bulk mode.
+>
+> Because of this built-in delay, checking a dump of just 1,000 passwords will take nearly half an hour. We strongly recommend using `--skip-hibp` for large datasets to bypass the network check entirely and run the audit locally at maximum speed.
 
 The tool auto-detects two input formats for `passwords.txt`:
 1. **Bare passwords:** (One password per line)
@@ -151,7 +169,6 @@ Missing or malformed fields fall back to defaults instead of breaking the tool.
 - Hash cracking is dictionary-only, in-memory, single-threaded. A wordlist miss doesn't mean the password is strong — it means it wasn't in rockyou.
 - No rainbow tables, no rule-based mutations during cracking, no GPU acceleration.
 - No Levenshtein/similarity matching yet — I need to get better at dynamic programming first. *That's on me, not the tool.*
-- HIBP API calls have no retry/timeout handling. If the API is down, that check just fails silently.
 
 ## License
 

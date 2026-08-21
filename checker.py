@@ -19,7 +19,7 @@ def is_mutation_of_wordlist(password, wordlist):
         return False 
     return base.lower() in wordlist
 
-# KEYBOARD WALKS
+# pre-compute bad 4-key walk sequences from a standard QWERTY keyboard
 KEYBOARD_ROWS = [
     "1234567890",
     "qwertyuiop",
@@ -40,8 +40,8 @@ def is_keyboard_walk(password):
     return False
 
 def is_date_pattern(password):
-    # Detect 4-digit years in the password (e.g., 1900 to 2030).
-    return bool(re.search(r'(19[0-9]{2}|20[0-2][0-9]|2030)', password))
+    # Detect 4-digit years in the password (e.g., 1900 to 2030) at the start or end only.
+    return bool(re.search(r'^(19[0-9]{2}|20[0-2][0-9]|2030)|(19[0-9]{2}|20[0-2][0-9]|2030)$', password))
 
 LEET_MAPPING = {
     '@': 'a',
@@ -92,21 +92,20 @@ def is_in_wordlist(password, wordlist):
 
 
 
-# Here in this function the user password is converted into hash using sha1
-# then broken into first5 and remaining suffix (it is because we shouldn't
-# check or search for whole hash through api, it may leak from api attacks)
-
-# then first5 of hashed value is passed through hibpwned api and gets all the hash values 
-# of the matching hashes and stores in response
-# then response is checked and matched with the suffix of user password
-#  this is how the function checks compromised passwords from haveibeenpwned passwords
+# k-anonymity trick: only send the first 5 chars of the sha1 hash to the API. 
+# we check the rest of the hash locally so we don't leak the password over the network.
 def check_hibpwn(password):
     hash = hashlib.sha1(password.encode()).hexdigest().upper()
 
     first5 = hash[:5]
     suffix = hash[5:]
 
-    response = requests.get(f"https://api.pwnedpasswords.com/range/{first5}")
+    try:
+        response = requests.get(f"https://api.pwnedpasswords.com/range/{first5}", timeout=5)
+        response.raise_for_status()
+    except requests.RequestException:
+        # Return -1 to indicate the API check failed/was skipped due to network error
+        return -1
 
     for line in response.text.splitlines():
         returned_suffix, count = line.split(":")

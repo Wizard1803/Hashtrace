@@ -1,16 +1,18 @@
 import os
 import secrets
-from analyzer import calculate_entropy, get_strength_label
+import math
+from analyzer import get_strength_label
 from rich.console import Console, Group
 from rich.panel import Panel
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_EFF_PATH = os.path.join(BASE_DIR, "Wordlists", "eff_large_wordlist.txt")
 
 # Allowed random separators between passphrase words (numbers and symbols)
 SEPARATORS = list("0123456789!@#$%^&*-_+=")
 
-def load_eff_wordlist(filepath="Wordlists/eff_large_wordlist.txt"):
-    """
-    Loads words from the EFF wordlist file into a Python list.
-    """
+def load_eff_wordlist(filepath=DEFAULT_EFF_PATH):
+
     if not os.path.exists(filepath):
         return []
     try:
@@ -22,7 +24,7 @@ def load_eff_wordlist(filepath="Wordlists/eff_large_wordlist.txt"):
 
 
 def _join_words_with_separators(words):
-    """Helper to join a list of words with randomly chosen separators."""
+
     parts = []
     for i, w in enumerate(words):
         parts.append(w)
@@ -32,24 +34,18 @@ def _join_words_with_separators(words):
 
 
 def generate_suggestions(wordlist, word_count=4):
-    """
-    Generates 2 strong, memorable Diceware-style passphrase suggestions.
-    
-    1. Select 4 random words using secrets.choice(wordlist).
-    2. Insert random separators (numbers/symbols) between words.
-    3. Generate 2 variants:
-       - Variant 1: First letter of each word capitalized (Title Case)
-       - Variant 2: One random full word in uppercase
-    4. Calculate the entropy score for each generated passphrase.
-    """
+    # generate 2 diceware-style passphrase variants
     if not wordlist or len(wordlist) < word_count:
         return []
+
+    # Calculate true Diceware entropy based on the wordlist size, not raw character length.
+    # Formula: word_count * log2(wordlist_size)
+    true_entropy = round(word_count * math.log2(len(wordlist)), 2)
 
     # --- Variant 1: Title Case Words ---
     words_v1 = [secrets.choice(wordlist).capitalize() for _ in range(word_count)]
     passphrase_v1 = _join_words_with_separators(words_v1)
-    entropy_v1 = calculate_entropy(passphrase_v1)
-    strength_v1 = get_strength_label(entropy_v1)
+    strength_v1 = get_strength_label(true_entropy)
 
     # --- Variant 2: Single Word Emphasis (One Word All-Caps) ---
     raw_words_v2 = [secrets.choice(wordlist).lower() for _ in range(word_count)]
@@ -59,21 +55,20 @@ def generate_suggestions(wordlist, word_count=4):
         for i, w in enumerate(raw_words_v2)
     ]
     passphrase_v2 = _join_words_with_separators(words_v2)
-    entropy_v2 = calculate_entropy(passphrase_v2)
-    strength_v2 = get_strength_label(entropy_v2)
+    strength_v2 = get_strength_label(true_entropy)
 
     return [
         {
             "passphrase": passphrase_v1,
             "variant_name": "Title Case Words",
-            "entropy": entropy_v1,
+            "entropy": true_entropy,
             "strength": strength_v1,
-            "explanation": "High entropy from 4 capitalized words separated by random numbers/symbols."
+            "explanation": "Calculated using true Diceware word-level entropy (not raw character count)."
         },
         {
             "passphrase": passphrase_v2,
             "variant_name": "Single Word Emphasis",
-            "entropy": entropy_v2,
+            "entropy": true_entropy,
             "strength": strength_v2,
             "explanation": "High entropy with one full-caps word for enhanced human recall."
         }
@@ -81,9 +76,7 @@ def generate_suggestions(wordlist, word_count=4):
 
 
 def format_suggestions_panel(suggestions):
-    """
-    Renders the generated passphrase suggestions inside a rich Panel.
-    """
+
     if not suggestions:
         return None
 

@@ -1,14 +1,4 @@
-"""
-banner.py — Animated Hashtrace launch banner.
-
-Features:
-  1. Gradient-colored FIGlet ASCII art  (red → orange tones)
-  2. Line-by-line typing reveal animation
-  3. Subtle thin-line frame
-  4. Tagline + version pill
-
-Uses only Rich — zero extra dependencies.
-"""
+# banner.py — Animated Hashtrace launch banner
 
 import sys
 import time
@@ -78,7 +68,7 @@ FRAME_INNER_WIDTH = 73
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 def _color_for_position(index: int, total: int) -> str:
-    """Pick a gradient color based on horizontal position."""
+
     if total <= 1:
         return GRADIENT_COLORS[0]
     ratio = index / (total - 1)
@@ -87,7 +77,7 @@ def _color_for_position(index: int, total: int) -> str:
 
 
 def _gradient_line(line: str) -> Text:
-    """Apply a horizontal gradient across a single line of text."""
+
     text = Text()
     total = len(line)
     for i, ch in enumerate(line):
@@ -97,12 +87,12 @@ def _gradient_line(line: str) -> Text:
 
 
 def _build_gradient_art() -> list[Text]:
-    """Convert FIGLET_LINES into gradient-colored Rich Text objects."""
+
     return [_gradient_line(line) for line in FIGLET_LINES]
 
 
 def _pad_text(text: Text, target_width: int) -> Text:
-    """Pad a Rich Text object to a target width with trailing spaces."""
+
     padded = Text()
     padded.append(text)
     plain_len = len(text.plain)
@@ -112,14 +102,14 @@ def _pad_text(text: Text, target_width: int) -> Text:
 
 
 def _center_str(content: str, width: int) -> tuple[int, int]:
-    """Return (left_pad, right_pad) to center content in width."""
+
     pad_left = (width - len(content)) // 2
     pad_right = width - len(content) - pad_left
     return pad_left, pad_right
 
 
 def _build_frame(content_lines: list[Text], subtitle: Text, version_pill: Text) -> Text:
-    """Wrap content in a subtle thin-line frame."""
+
     w = FRAME_INNER_WIDTH
     frame = Text()
 
@@ -180,12 +170,7 @@ def _build_frame(content_lines: list[Text], subtitle: Text, version_pill: Text) 
 # ── Public API ───────────────────────────────────────────────────────────────
 
 def print_banner(console: Console, animate: bool = True) -> None:
-    """
-    Render the Hashtrace launch banner to *console*.
 
-    If *animate* is True (default), plays a line-by-line reveal animation.
-    If False, prints the static frame immediately (useful for piped output).
-    """
     subtitle = Text(SUBTITLE, style="dim italic #888888")
     version_pill = Text(VERSION, style="dim #666666")
 
@@ -204,7 +189,7 @@ def print_banner(console: Console, animate: bool = True) -> None:
 
 
 def _hex_to_rgb(hex_color: str) -> tuple[int, int, int]:
-    """Convert '#RRGGBB' to (R, G, B) tuple."""
+
     return (
         int(hex_color[1:3], 16),
         int(hex_color[3:5], 16),
@@ -225,7 +210,7 @@ def _play_line_reveal(
     subtitle: Text,
     version_pill: Text,
 ) -> None:
-    """Character-by-character typing animation using direct ANSI output."""
+
 
     char_delay = 0.003   # seconds per visible character (spaces are instant)
     w = FRAME_INNER_WIDTH

@@ -5,18 +5,7 @@ from rich.panel import Panel
 from rich.prompt import Prompt
 
 def identify_hash_type(hash_str):
-    """
-    Pattern-based algorithm identification based on hash length and character set.
-    
-    Expected rules:
-    - 32 hex chars (0-9, a-f) -> 'MD5/NTLM' (Ambiguous)
-    - 40 hex chars (0-9, a-f) -> 'SHA-1'
-    - 64 hex chars (0-9, a-f) -> 'SHA-256'
-    - 128 hex chars (0-9, a-f) -> 'SHA-512'
-    - Otherwise -> 'Unknown'
-    
-    Returns: algorithm name string or 'Unknown'
-    """
+    # identify hash algorithm by length and charset
     cleaned = hash_str.strip().lower()
     
     if not re.fullmatch(r'[0-9a-f]+', cleaned):
@@ -38,7 +27,7 @@ def identify_hash_type(hash_str):
 import struct
 
 def _md4(data: bytes) -> str:
-    """Pure-Python RFC 1320 MD4 implementation for NTLM support on Python 3.13 / OpenSSL 3.0+."""
+    # Pure-Python RFC 1320 MD4 implementation for NTLM support on Python 3.13 / OpenSSL 3.0+
     msg = bytearray(data)
     orig_len_bits = (8 * len(msg)) & 0xFFFFFFFFFFFFFFFF
     msg.append(0x80)
@@ -88,16 +77,7 @@ def _md4(data: bytes) -> str:
 
 
 def hash_word(word, algorithm):
-    """
-    Computes the cryptographic hash of a word for a given algorithm.
-    
-    Algorithms supported:
-    - 'MD5': hashlib.md5(word.encode('utf-8')).hexdigest()
-    - 'SHA-1': hashlib.sha1(word.encode('utf-8')).hexdigest()
-    - 'SHA-256': hashlib.sha256(word.encode('utf-8')).hexdigest()
-    - 'SHA-512': hashlib.sha512(word.encode('utf-8')).hexdigest()
-    - 'NTLM': md4(word.encode('utf-16le'))
-    """
+
     algo = algorithm.upper()
     try:
         if algo == "MD5":
@@ -120,12 +100,7 @@ def hash_word(word, algorithm):
 
 
 def crack_hash(target_hash, algorithm, wordlist):
-    """
-    In-memory dictionary search.
-    Hashes each word in wordlist under `algorithm` and checks for match against target_hash.
-    
-    Returns: (found: bool, plaintext: str or None)
-    """
+    # in-memory dictionary search
     target = target_hash.strip().lower()
     for word in wordlist:
         if hash_word(word, algorithm) == target:
@@ -134,10 +109,7 @@ def crack_hash(target_hash, algorithm, wordlist):
 
 
 def resolve_ambiguity(target_hash, console):
-    """
-    Handles the 32-hex character ambiguity between MD5 and NTLM.
-    Asks the user to choose, or select 'I don't know' to test both.
-    """
+    # handle 32-hex ambiguity (MD5 vs NTLM)
     console.print("\n[yellow]Ambiguity Detected:[/] Target hash is 32 hex characters, which matches both [bold cyan]MD5[/] and [bold cyan]NTLM[/].")
     console.print("  [1] MD5 (Standard Unix/Web hash)")
     console.print("  [2] NTLM (Windows Active Directory / SAM hash)")
@@ -154,9 +126,7 @@ def resolve_ambiguity(target_hash, console):
 
 
 def run_hash_cracker(target_hash, wordlist, console):
-    """
-    Orchestrates the cracking workflow and renders results with Rich.
-    """
+
     cleaned_hash = target_hash.strip().lower()
     detected_type = identify_hash_type(cleaned_hash)
 

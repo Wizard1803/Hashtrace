@@ -1,16 +1,20 @@
 import sys
+import os
 import argparse
 from analyzer import analyze, get_strength_label, get_crack_times, TIER_EXPLANATIONS
-from checker import load_wordlist, is_in_wordlist, is_mutation_of_wordlist,check_hibpwn, is_keyboard_walk, is_date_pattern, is_leetspeak_of_wordlist, is_hybrid_mutation_leetspeak
-from policy import load_policy, check_policy
+from checker import load_wordlist
+from policy import load_policy
 from bulk import run_bulk_audit
+from pipeline import run_full_analysis
 from suggestions import load_eff_wordlist, generate_suggestions, format_suggestions_panel
 from cracker import run_hash_cracker
-from banner import print_banner
+from banner import print_banner, VERSION
 from rich.console import Console, Group
 from rich.table import Table
 from rich.panel import Panel
 from rich.prompt import Prompt
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 console = Console()
 
@@ -62,6 +66,8 @@ def print_results(analysis, in_wordlist, pwned_count, crack_times, policy_result
     
     if pwned_count > 0:
         render_items.append(f"[cyan]PAWNED:[/] [bold red]YES - SEEN {pwned_count} times in breaches[/]")
+    elif pwned_count == -1:
+        render_items.append("[cyan]PAWNED:[/] [bold yellow]SKIPPED - API Unavailable[/]")
     else:
         render_items.append("[cyan]PAWNED:[/] [bold green]NO[/]")
         
@@ -119,32 +125,39 @@ def print_results(analysis, in_wordlist, pwned_count, crack_times, policy_result
 def main():
     parser = argparse.ArgumentParser(description="HashTrace - Offensive Security Password Intelligence Tool")
     parser.add_argument("--bulk", nargs=2, metavar=("INPUT_TXT", "OUTPUT_CSV"), help="Audit multiple passwords from a .txt file and write results to .csv")
+    parser.add_argument("--skip-hibp", action="store_true", help="Skip HaveIBeenPwned API checks (recommended for large bulk runs)")
     parser.add_argument("--crack", metavar="HASH", help="Attempt in-memory dictionary recovery on a target hash (MD5, NTLM, SHA-1, SHA-256, SHA-512)")
+    parser.add_argument("--version", action="version", version=f"HashTrace {VERSION}")
+    parser.add_argument("--no-color", action="store_true", help="Disable colored terminal output")
     args = parser.parse_args()
 
-    active_policy = load_policy("policy.json")
+    if args.no_color:
+        global console
+        console = Console(color_system=None)
+
+    active_policy = load_policy(os.path.join(BASE_DIR, "policy.json"))
 
     if args.bulk:
         input_file, output_file = args.bulk
         with console.status("[bold cyan]Loading wordlist...[/]"):
-            wordlist = load_wordlist("Wordlists/rockyou.txt")
-        run_bulk_audit(input_file, output_file, wordlist, active_policy, console=console)
+            wordlist = load_wordlist(os.path.join(BASE_DIR, "Wordlists", "rockyou.txt"))
+        run_bulk_audit(input_file, output_file, wordlist, active_policy, skip_hibp=args.skip_hibp, console=console)
         return
 
     if args.crack:
         with console.status("[bold cyan]Loading wordlist for cracking...[/]"):
-            wordlist = load_wordlist("Wordlists/rockyou.txt")
+            wordlist = load_wordlist(os.path.join(BASE_DIR, "Wordlists", "rockyou.txt"))
         run_hash_cracker(args.crack, wordlist, console=console)
         return
 
     print_banner(console)
     print_tier_explanations()
     
-    eff_wordlist = load_eff_wordlist("Wordlists/eff_large_wordlist.txt")
+    eff_wordlist = load_eff_wordlist(os.path.join(BASE_DIR, "Wordlists", "eff_large_wordlist.txt"))
 
     # UX Improvement: Status spinner while doing the heavy wordlist loading
     with console.status("[bold cyan]Loading wordlist...[/]"):
-        wordlist = load_wordlist("Wordlists/rockyou.txt")         #it is a function made in checker.py, it's not built-in, keep it in mind
+        wordlist = load_wordlist(os.path.join(BASE_DIR, "Wordlists", "rockyou.txt"))         #it is a function made in checker.py, it's not built-in, keep it in mind
     console.print(f"[dim]Loaded {len(wordlist)} words from the wordlist[/]\n")
 
     while True:                                                 #important loop, combines almost all functions, logic is important
@@ -157,66 +170,9 @@ def main():
         
         # UX Improvement: Another spinner while hitting HIBP API and checking rules
         with console.status("[bold cyan]Analyzing password...[/]"):
-            analysis = analyze(password)
-            in_wordlist = is_in_wordlist(password, wordlist)
-            pwned_count = check_hibpwn(password)
-            policy_result = check_policy(password, active_policy)
-            crack_times = None
-            keyboard_walk = is_keyboard_walk(password)
-            if keyboard_walk:
-                analysis["weaknesses"].append("Keyboard walk detected")
-            has_date = is_date_pattern(password)
-            if has_date:
-                analysis["weaknesses"].append("Date pattern detected")
-            
-            if in_wordlist == True:
-                analysis["entropy"] = 0
-                analysis["strength"] = "Very Weak (Known Password)"
-            else:
-                is_mutation = is_mutation_of_wordlist(password, wordlist)
-                is_leet = is_leetspeak_of_wordlist(password, wordlist)
-                is_hybrid = is_hybrid_mutation_leetspeak(password, wordlist)
-                
-                multiplier = 1
-                
-                # Using if/elif here because if it's a hybrid, it is also a mutation and a leetspeak.
-                # We don't want to penalize them 3 separate times for the exact same base word.
-                if is_hybrid:
-                    analysis["weaknesses"].append("Hybrid (Mutation + Leetspeak) detected")
-                    multiplier *= 0.1
-                elif is_mutation:
-                    #if password has any weakness or mutation then entropy should be decreased so it's strength decreases
-                    analysis["weaknesses"].append("Mutation of known password is Detected")
-                    multiplier *= 0.2
-                elif is_leet:
-                    analysis["weaknesses"].append("Leet-speak pattern detected")
-                    multiplier *= 0.2
-                    
-                if "Repeating characters Detected" in analysis["weaknesses"]:
-                    multiplier *= 0.3
-                if "Keyboard walk detected" in analysis["weaknesses"]:
-                    multiplier *= 0.1
-                if "Date pattern detected" in analysis["weaknesses"]:
-                    multiplier *= 0.5
-
-                analysis["entropy"] = round(analysis["entropy"] * multiplier, 2)
-                
-                # HARD CAP: If it's just a lowercase string (no upper, no numbers, no symbols)
-                # it should never be able to reach "Strong" tier just by being extremely long.
-                has_no_upper = "No uppercase letters" in analysis["weaknesses"]
-                has_no_numbers = "No numbers" in analysis["weaknesses"]
-                has_no_special = "No special characters" in analysis["weaknesses"]
-                
-                if has_no_upper and has_no_numbers and has_no_special:
-                    if analysis["entropy"] > 45:
-                        analysis["entropy"] = 45.0
-                        analysis["weaknesses"].append("Lowercase string — entropy artificially capped")
-                analysis["strength"] = get_strength_label(analysis["entropy"])
-                
-                # If it's not breached in HIBP either, calculate the crack times
-                # Note: We do this AFTER penalties are applied so the time reflects structural weaknesses!
-                if pwned_count == 0 and not (is_mutation or is_leet or is_hybrid):
-                    crack_times = get_crack_times(analysis["entropy"])
+            analysis, in_wordlist, pwned_count, policy_result, crack_times = run_full_analysis(
+                password, wordlist, active_policy, skip_hibp=False, throttle_hibp=False
+            )
             
             # Only provide passphrase recommendations if the password has weaknesses,
             # is compromised/breached, or failed the security policy check.
